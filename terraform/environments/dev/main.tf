@@ -23,3 +23,21 @@ module "networking" {
   resource_group = module.resource_group.name
 
 }
+
+module "acr" {
+
+  source         = "../../modules/acr"
+  name           = "acrreaditdev123"
+  location       = "westeurope"
+  resource_group = module.resource_group.name
+
+}
+
+module "aks" {
+
+  source         = "../../modules/aks"
+  name           = "aks-readit-dev"
+  location       = "westeurope"
+  resource_group = module.resource_group.name
+
+}
