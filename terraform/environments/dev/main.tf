@@ -1,43 +1,25 @@
-module "resource_group" {
-
+#  Resource Group
+module "rg" {
   source   = "../../modules/resource-group"
-  name     = "rg-readit-dev"
-  location = "westeurope"
-
+  name     = "rg-readit"
+  location = var.location
 }
 
-module "log_analytics" {
-
-  source         = "../../modules/log-analytics"
-  name           = "log-readit-dev"
-  location       = "westeurope"
-  resource_group = module.resource_group.name
-
-}
-
-module "networking" {
-
-  source         = "../../modules/networking"
-  name           = "vnet-readit-dev"
-  location       = "westeurope"
-  resource_group = module.resource_group.name
-
-}
-
+#  ACR
 module "acr" {
-
-  source         = "../../modules/acr"
-  name           = "acrreaditdev123"
-  location       = "westeurope"
-  resource_group = module.resource_group.name
-
+  source              = "../../modules/acr"
+  name                = "readitacr123"
+  location            = var.location
+  resource_group_name = module.rg.name
 }
 
+#  AKS
 module "aks" {
+  source              = "../../modules/aks"
+  name                = "readit-aks"
+  location            = var.location
+  resource_group_name = module.rg.name
+  dns_prefix          = "readit"
 
-  source         = "../../modules/aks"
-  name           = "aks-readit-dev"
-  location       = "westeurope"
-  resource_group = module.resource_group.name
-
+  acr_id = module.acr.id
 }

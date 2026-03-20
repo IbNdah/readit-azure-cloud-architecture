@@ -4,6 +4,10 @@
 *.tfstate.*
 terraform.tfvars
 .terraform.lock.hcl
+bin/
+obj/
+node_modules/
+.env
 
 # OS
 .DS_Store
