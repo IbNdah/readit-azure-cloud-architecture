@@ -4,46 +4,114 @@
 
 ReadIt is a cloud-native microservices application simulating an online bookstore.
 
-This project demonstrates how to deploy applications on Azure using:
+This project demonstrates an end-to-end deployment of a containerized application on Azure using modern cloud practices.
 
-* Azure Kubernetes Service (AKS)
-* Azure Container Registry (ACR)
-* Terraform
-* Docker
+## Live Demo  
+http://<your-public-ip>
+---
+
+## Architecture
+
+- Containerized .NET application (catalog-service)
+- Azure Container Registry (ACR) for image storage
+- Azure Kubernetes Service (AKS) for orchestration
+- NGINX Ingress Controller for routing
+- Azure LoadBalancer for public access
+- Infrastructure provisioned using Terraform
 
 ---
 
-## Current Status
+## Tech Stack
 
-* Terraform infrastructure structure created
-* AKS and ACR modules defined
-* Project structure initialized
-* catalog-service integration in progress
+- Docker
+- Kubernetes (AKS)
+- Azure Container Registry (ACR)
+- Terraform (Infrastructure as Code)
+- NGINX Ingress
+
+---
+
+## Features
+
+- End-to-end cloud deployment (build → push → deploy)
+- Rolling updates using Kubernetes
+- Rollback capability
+- Infrastructure as Code with modular Terraform
+- Public access via Ingress and LoadBalancer
+
+---
+
+## Deployment Flow
+# ReadIt - Azure Cloud Architecture
+
+## Overview
+
+ReadIt is a cloud-native microservices application simulating an online bookstore.
+
+This project demonstrates an end-to-end deployment of a containerized application on Azure using modern cloud practices.
+
+---
+
+## Architecture
+
+- Containerized .NET application (catalog-service)
+- Azure Container Registry (ACR) for image storage
+- Azure Kubernetes Service (AKS) for orchestration
+- NGINX Ingress Controller for routing
+- Azure LoadBalancer for public access
+- Infrastructure provisioned using Terraform
+
+---
+
+## Tech Stack
+
+- Docker
+- Kubernetes (AKS)
+- Azure Container Registry (ACR)
+- Terraform (Infrastructure as Code)
+- NGINX Ingress
+
+---
+
+## Features
+
+- End-to-end cloud deployment (build → push → deploy)
+- Rolling updates using Kubernetes
+- Rollback capability
+- Infrastructure as Code with modular Terraform
+- Public access via Ingress and LoadBalancer
+
+---
+
+## Deployment Flow
+
+---
+
+## Result
+
+The application is successfully deployed and accessible via a public IP through Azure LoadBalancer and NGINX Ingress.
 
 ---
 
 ## Project Structure
+readit-azure-architecture/
+├── catalog-service/ # .NET application
+├── terraform/ # Infrastructure as Code
+├── kubernetes/ # Kubernetes manifests
+└── docs/ # Architecture documentation
 
-* catalog-service → application code
-* terraform → infrastructure as code
-* kubernetes → deployment manifests
-* docs → architecture documentation
-
----
-
-## Goal
-
-Build a production-like Azure architecture demonstrating:
-
-* microservices deployment on AKS
-* infrastructure provisioning with Terraform
-* scalable and secure cloud design
 
 ---
 
 ## Next Steps
 
-* Dockerize catalog-service
-* Deploy to AKS
-* Expose service
-* Add more services (cart, order, inventory)
+- Add additional microservices (cart, order, inventory)
+- Implement CI/CD pipeline (GitHub Actions)
+- Add HTTPS with Let's Encrypt
+- Improve observability (monitoring & logging)
+
+---
+
+## Author
+
+Cloud / Azure Architecture Portfolio Project
