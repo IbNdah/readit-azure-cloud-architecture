@@ -41,11 +41,14 @@ Code → Docker → ACR → AKS → Ingress → Public Endpoint
 
 ## Project Structure
 
+```text
 readit-azure-architecture/
 ├── catalog-service/   # .NET application
 ├── terraform/         # Infrastructure as Code
 ├── kubernetes/        # Kubernetes manifests
 └── docs/              # Architecture documentation
+```
+
 
 ## Next Steps
 
