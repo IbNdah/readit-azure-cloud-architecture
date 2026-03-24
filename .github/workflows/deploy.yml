@@ -15,7 +15,6 @@ jobs:
 build-and-deploy:
 runs-on: ubuntu-latest
 
-
 steps:
   - name: Checkout code
     uses: actions/checkout@v3
@@ -41,4 +40,3 @@ steps:
   - name: Deploy to AKS
     run: |
       kubectl set image deployment/catalog-deployment catalog=$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
-
