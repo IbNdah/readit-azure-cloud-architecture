@@ -15,31 +15,30 @@ jobs:
 build-and-deploy:
 runs-on: ubuntu-latest
 
-```
+
 steps:
+  - name: Checkout code
+    uses: actions/checkout@v3
 
-- name: Checkout code
-  uses: actions/checkout@v3
+  - name: Login to Azure
+    uses: azure/login@v1
+    with:
+      creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-- name: Login to Azure
-  uses: azure/login@v1
-  with:
-    creds: ${{ secrets.AZURE_CREDENTIALS }}
+  - name: Build Docker image
+    run: |
+      docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} ./catalog-service
 
-- name: Build Docker image
-  run: |
-    docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} ./catalog-service
+  - name: Push image to ACR
+    run: |
+      az acr login --name $ACR_NAME
+      docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
 
-- name: Push image to ACR
-  run: |
-    az acr login --name $ACR_NAME
-    docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
+  - name: Set AKS context
+    run: |
+      az aks get-credentials --name $AKS_CLUSTER --resource-group $RESOURCE_GROUP --overwrite-existing
 
-- name: Set AKS context
-  run: |
-    az aks get-credentials --name $AKS_CLUSTER --resource-group $RESOURCE_GROUP --overwrite-existing
+  - name: Deploy to AKS
+    run: |
+      kubectl set image deployment/catalog-deployment catalog=$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
 
-- name: Deploy to AKS
-  run: |
-    kubectl set image deployment/catalog-deployment catalog=$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
-```
