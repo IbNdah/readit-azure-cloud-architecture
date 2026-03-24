@@ -5,19 +5,17 @@ on:
     branches:
       - main
 
-
 env:
   ACR_NAME: readitacr123
   IMAGE_NAME: catalog-service
   AKS_CLUSTER: readit-aks
   RESOURCE_GROUP: rg-readit
 
-
 jobs:
   build-and-deploy:
-     runs-on: ubuntu-latest
-        
-     steps:
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -27,8 +25,8 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: BUild Docker Image
-        run:  |
-          docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} ./catalog-serv
+        run: |
+          docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} ./catalog-service
 
       - name: Push image to ACR
         run: |
@@ -41,7 +39,4 @@ jobs:
 
       - name: Deploy to AKS
         run: |
-         kubectl set image deployment/catalog-deployment catalog=$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha}}
-
-
-    
+          kubectl set image deployment/catalog-deployment catalog=$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha}}
