@@ -39,4 +39,5 @@ jobs:
 
       - name: Deploy to AKS
         run: |
+          kubectl apply -f kubernetes/
           kubectl set image deployment/catalog-deployment catalog=${{env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
