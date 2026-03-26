@@ -4,6 +4,8 @@
 *.tfstate.*
 terraform.tfvars
 .terraform.lock.hcl
+
+# .NET
 bin/
 obj/
 node_modules/
