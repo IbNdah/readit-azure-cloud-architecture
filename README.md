@@ -25,6 +25,34 @@ This project implements a full end-to-end cloud architecture:
 * **Azure Load Balancer** for external exposure
 * **Terraform** for Infrastructure as Code (modular design)
 
+## 🧩 Architecture Diagram
+```mermaid
+flowchart LR
+    subgraph Internet
+        User["User"]
+    end
+
+    subgraph Azure
+        LB["Azure Load Balancer"]
+        Ingress["NGINX Ingress Controller"]
+        
+        subgraph AKS Cluster
+            Service["Service (ClusterIP)"]
+            Pod1["Pod 1"]
+            Pod2["Pod 2"]
+        end
+
+        ACR["Azure Container Registry"]
+    end
+
+    User --> LB
+    LB --> Ingress
+    Ingress --> Service
+    Service --> Pod1
+    Service --> Pod2
+    Pod1 --> ACR
+    Pod2 --> ACR
+```
 ---
 
 ## ⚙️ Tech Stack
