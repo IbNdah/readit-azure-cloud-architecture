@@ -3,16 +3,16 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 COPY catalog/ ./catalog/
-RUN dotnet restore ./catalog/catalog.csproj
-RUN dotnet publish ./catalog/catalog.csproj -c Release -o /app/out
+WORKDIR /app/catalog
+RUN dotnet restore 
+RUN dotnet publish -c Release -o out
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
-COPY --from=build /app/out .
+COPY --from=build /app/catalog/out .
 
-EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=http://+:80
 
 ENTRYPOINT ["dotnet", "catalog.dll"]
