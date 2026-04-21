@@ -7,9 +7,8 @@ on:
 
 env:
   ACR_NAME: readitacr123
-  IMAGE_NAME: catalog-service
-  AKS_CLUSTER: readit-aks
   RESOURCE_GROUP: rg-readit
+  AKS_CLUSTER: readit-aks
 
 jobs:
   build-and-deploy:
@@ -19,26 +18,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: login to Azure
+      - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: BUild Docker Image
+      - name: Build and Push Catalog
         run: |
-          docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{env.IMAGE_NAME}}:${{ github.sha }} ./catalog-service
-
-      - name: Push image to ACR
-        run: |
+          docker build -t $ACR_NAME.azurecr.io/catalog-service:${{ github.sha }} ./catalog-service
           az acr login --name $ACR_NAME
-          docker push ${{ env.ACR_NAME }}.azurecr.io/${{env.IMAGE_NAME}}:${{ github.sha }}
+          docker push $ACR_NAME.azurecr.io/catalog-service:${{ github.sha }}
 
-      - name: Set AKS context
+      - name: Build and Push Cart
+        run: |
+          docker build -t $ACR_NAME.azurecr.io/cart-service:${{ github.sha }} ./cart-service
+          docker push $ACR_NAME.azurecr.io/cart-service:${{ github.sha }}
+
+      - name: Get AKS Credentials
         run: |
           az aks get-credentials --name $AKS_CLUSTER --resource-group $RESOURCE_GROUP --overwrite-existing
 
       - name: Deploy to AKS
         run: |
-          kubectl apply -f kubernetes/catalog-deployment.yaml
-          kubectl apply -f kubernetes/catalog-service.yaml
-          kubectl set image deployment/catalog-deployment catalog=${{env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          kubectl set image deployment/catalog-deployment catalog=$ACR_NAME.azurecr.io/catalog-service:${{ github.sha }}
+          kubectl set image deployment/cart-deployment cart=$ACR_NAME.azurecr.io/cart-service:${{ github.sha }}
