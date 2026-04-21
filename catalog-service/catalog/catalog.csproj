@@ -17,4 +17,9 @@
     <PackageReference Include="ServiceStack.Redis" Version="5.9.2" />
   </ItemGroup>
 
+    <ItemGroup>
+    <Content Remove="out\**" />
+    <None Remove="out\**" />
+  </ItemGroup>
+
 </Project>
