@@ -1,3 +1,4 @@
+using System.IO;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -19,13 +20,8 @@ namespace cart.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var connectionString =
-                Environment.GetEnvironmentVariable("SERVICEBUS_CONNECTION")
-                ?? _configuration["ServiceBus:ConnectionString"];
-
-            var queueName =
-                Environment.GetEnvironmentVariable("SERVICEBUS_QUEUE")
-                ?? _configuration["ServiceBus:QueueName"];
+            var connectionString = File.ReadAllText("/mnt/secrets/servicebus-connection").Trim();
+            var queueName = File.ReadAllText("/mnt/secrets/servicebus-queue").Trim();
 
             var client = new ServiceBusClient(connectionString);
 
