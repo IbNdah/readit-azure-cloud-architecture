@@ -15,7 +15,13 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3 # 🔍 DEBUG ICI
+      - name: Debug secrets
+        run: |
+          echo "CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID != '' }}"
+          echo "CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET != '' }}"
+          echo "SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION_ID != '' }}"
+          echo "TENANT: ${{ secrets.AZURE_TENANT_ID != '' }}"
 
       # 🔐 Azure login
       - name: Azure Login
