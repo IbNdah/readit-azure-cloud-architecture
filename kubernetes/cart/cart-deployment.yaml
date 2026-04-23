@@ -2,18 +2,36 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cart-deployment
+
 spec:
   replicas: 2
+
   selector:
     matchLabels:
       app: cart
+
   template:
     metadata:
       labels:
         app: cart
+
     spec:
       containers:
         - name: cart
-          image: readitacr123.azurecr.io/cart-service:v1
+          image: readitacr123.azurecr.io/cart-service:v4
+
           ports:
             - containerPort: 80
+
+          env:
+            - name: SERVICEBUS_CONNECTION
+              valueFrom:
+                secretKeyRef:
+                  name: servicebus-secret
+                  key: SERVICEBUS_CONNECTION
+
+            - name: SERVICEBUS_QUEUE
+              valueFrom:
+                secretKeyRef:
+                  name: servicebus-secret
+                  key: SERVICEBUS_QUEUE

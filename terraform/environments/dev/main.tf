@@ -23,3 +23,12 @@ module "aks" {
 
   acr_id = module.acr.id
 }
+
+# Sercice Bus
+module "servicebus" {
+  source              = "../../modules/servicebus"
+  resource_group_name = module.rg.name
+  location            = var.location
+  namespace_name      = "readitbus123"
+  queue_name          = "cart-queue"
+}

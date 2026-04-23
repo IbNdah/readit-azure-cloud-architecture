@@ -52,6 +52,7 @@ namespace catalog
             {
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
+
             });
         }
     }

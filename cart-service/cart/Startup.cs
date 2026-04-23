@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using cart.Data;
 using Microsoft.EntityFrameworkCore;
+using cart.Services;
 
 namespace cart
 {
@@ -25,6 +26,7 @@ namespace cart
         {
             services.AddRazorPages();
             services.AddControllers();
+            services.AddHostedService<ServiceBusConsumer>();
 
             if (useInMemory)
             {
