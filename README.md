@@ -1,141 +1,106 @@
-# 🚀 ReadIt - Azure Cloud Architecture
+# 🚀 ReadIt - Azure Microservices Architecture
 
 ## 📌 Overview
 
-**ReadIt** is a cloud-native microservices application simulating an online bookstore.
+ReadIt is a cloud-native microservices application demonstrating a production-like Azure architecture.
 
-This project showcases a **production-like Azure architecture**, demonstrating how to design, deploy, and operate containerized applications using modern DevOps and cloud-native practices.
+It showcases how to design, deploy and debug distributed systems using:
 
----
-
-## 🌐 Live Demo
-
-http://<your-public-ip>
+- Azure Kubernetes Service (AKS)
+- Azure Container Registry (ACR)
+- Azure Service Bus
+- Terraform (Infrastructure as Code)
 
 ---
 
 ## 🏗️ Architecture
 
-This project implements a full end-to-end cloud architecture:
-
-* Containerized **.NET application** (catalog-service)
-* **Azure Container Registry (ACR)** for image management
-* **Azure Kubernetes Service (AKS)** for orchestration
-* **NGINX Ingress Controller** for routing
-* **Azure Load Balancer** for external exposure
-* **Terraform** for Infrastructure as Code (modular design)
-
-## 🧩 Architecture Diagram
-```mermaid
-flowchart LR
-    subgraph Internet
-        User["User"]
-    end
-
-    subgraph Azure
-        LB["Azure Load Balancer"]
-        Ingress["NGINX Ingress Controller"]
-        
-        subgraph AKS Cluster
-            Service["Service (ClusterIP)"]
-            Pod1["Pod 1"]
-            Pod2["Pod 2"]
-        end
-
-        ACR["Azure Container Registry"]
-    end
-
-    User --> LB
-    LB --> Ingress
-    Ingress --> Service
-    Service --> Pod1
-    Service --> Pod2
-    Pod1 --> ACR
-    Pod2 --> ACR
-```
----
-
-## ⚙️ Tech Stack
-
-* Docker
-* Kubernetes (AKS)
-* Azure Container Registry (ACR)
-* Terraform (IaC)
-* NGINX Ingress
-* GitHub Actions (CI/CD ready)
+- Catalog Service (producer)
+- Cart Service (consumer)
+- Azure Service Bus (async messaging)
 
 ---
 
-## ✨ Key Features
+## 🔄 Flow
 
-* End-to-end cloud deployment pipeline
-  *(Build → Push → Deploy → Expose)*
-
-* Kubernetes rolling updates & zero-downtime deployment
-
-* Rollback capability (versioned deployments)
-
-* Modular Infrastructure as Code (Terraform)
-
-* Public access via Ingress + Load Balancer
+User → AKS → Catalog → Service Bus → Cart
 
 ---
 
-## 🔄 Deployment Flow
+## 📁 Structure
 
-```text
-Code → Docker → ACR → AKS → Ingress → Public Endpoint
-```
-
----
-
-## 📁 Project Structure
-
-```text
 readit-azure-architecture/
-├── catalog-service/   # .NET application
-├── terraform/         # Infrastructure as Code (modules + environments)
-├── kubernetes/        # Kubernetes manifests (Deployment, Service, Ingress)
-└── docs/              # Architecture documentation
-```
+- catalog-service/
+- cart-service/
+- terraform/
+- kubernetes/
 
 ---
 
-## 🧠 Lessons Learned
+## 📚 Documentation
 
-This project involved real-world troubleshooting and cloud debugging:
-
-* Resolving **ImagePullBackOff** and ACR authentication issues
-* Fixing **container port mismatches (80 vs 8080)**
-* Debugging **Ingress (502 / 404 errors)**
-* Managing **Terraform state and environment isolation**
-* Understanding **AKS ↔ ACR identity and permissions**
+- [Architecture](docs/architecture.md)
+- [Deployment Guide](docs/deployment.md)
 
 ---
 
-## 🚧 Roadmap
+## 💡 Key Insight
 
-* [ ] Add additional microservices (cart, order, inventory)
-* [ ] Implement full CI/CD pipeline (GitHub Actions)
-* [ ] Enable HTTPS with cert-manager / Let's Encrypt
-* [ ] Add monitoring (Azure Monitor / Prometheus / Grafana)
-* [ ] Introduce API Gateway pattern
+This project focuses on real-world debugging:
+
+Cloud engineering is not about deployment —  
+it’s about understanding failures in distributed systems.
+
+# 🏗️ Architecture Details
+
+## Components
+
+- AKS (Kubernetes cluster)
+- ACR (container registry)
+- Service Bus (message broker)
+
+## Communication
+
+Catalog → sends message → Service Bus → Cart consumes
+
+## Key Concepts
+
+- Asynchronous communication
+- Microservices isolation
+- Event-driven architecture
+
+# 🚀 Deployment Guide
+
+## 1. Infrastructure
+
+terraform init
+terraform apply
 
 ---
 
-## 👤 Author
+## 2. Build & Push
 
-**Cloud / Azure Architecture Portfolio Project**
+docker build -t service:vX .
+docker tag service:vX <acr>/service:vX
+docker push <acr>/service:vX
 
 ---
 
-## 💡 Value Proposition
+## 3. Deploy
 
-This project demonstrates:
+kubectl apply -f kubernetes/
 
-* Real-world Azure architecture design
-* Kubernetes production concepts
-* Infrastructure as Code best practices
-* End-to-end DevOps workflow
+---
 
-👉 Designed to showcase skills for **Cloud Engineer / Azure Architect roles**
+## 4. Validate
+
+kubectl get pods
+kubectl logs <pod>
+
+---
+
+## Common Issues
+
+ImagePullBackOff → wrong tag / ACR access  
+CreateContainerConfigError → missing secret  
+Service Bus 401 → wrong config usage
