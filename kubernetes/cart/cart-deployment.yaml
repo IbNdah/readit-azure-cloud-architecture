@@ -18,20 +18,20 @@ spec:
     spec:
       containers:
         - name: cart
-          image: readitacr123.azurecr.io/cart-service:v4
+          image: readitacr123.azurecr.io/cart-service:v8
 
           ports:
             - containerPort: 80
 
-          env:
-            - name: SERVICEBUS_CONNECTION
-              valueFrom:
-                secretKeyRef:
-                  name: servicebus-secret
-                  key: SERVICEBUS_CONNECTION
+          volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
 
-            - name: SERVICEBUS_QUEUE
-              valueFrom:
-                secretKeyRef:
-                  name: servicebus-secret
-                  key: SERVICEBUS_QUEUE
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "readit-secrets"

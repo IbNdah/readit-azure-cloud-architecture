@@ -1,4 +1,4 @@
-name: Build and Deploy to AKS
+name: Build & Deploy to AKS
 
 on:
   push:
@@ -6,39 +6,68 @@ on:
       - main
 
 env:
-  ACR_NAME: readitacr123
-  RESOURCE_GROUP: rg-readit
-  AKS_CLUSTER: readit-aks
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Login to Azure
+      # 🔐 Azure login
+      - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
-      - name: Build and Push Catalog
+      # 🔑 Login ACR
+      - name: ACR Login
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      # 🧠 Tag unique (SHA)
+      - name: Set image tag
+        id: vars
+        run: echo "TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+
+      # 🐳 Build & Push Catalog
+      - name: Build & Push Catalog
         run: |
-          docker build -t $ACR_NAME.azurecr.io/catalog-service:${{ github.sha }} ./catalog-service
-          az acr login --name $ACR_NAME
-          docker push $ACR_NAME.azurecr.io/catalog-service:${{ github.sha }}
+          docker build -t $ACR_LOGIN_SERVER/catalog-service:$TAG ./catalog-service/catalog
+          docker push $ACR_LOGIN_SERVER/catalog-service:$TAG
 
-      - name: Build and Push Cart
+      # 🐳 Build & Push Cart
+      - name: Build & Push Cart
         run: |
-          docker build -t $ACR_NAME.azurecr.io/cart-service:${{ github.sha }} ./cart-service
-          docker push $ACR_NAME.azurecr.io/cart-service:${{ github.sha }}
+          docker build -t $ACR_LOGIN_SERVER/cart-service:$TAG ./cart-service/cart
+          docker push $ACR_LOGIN_SERVER/cart-service:$TAG
 
+      # ⚙️ Get AKS credentials
       - name: Get AKS Credentials
         run: |
-          az aks get-credentials --name $AKS_CLUSTER --resource-group $RESOURCE_GROUP --overwrite-existing
+          az aks get-credentials \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --name ${{ secrets.AKS_NAME }}
 
+      # 🚀 Deploy (rolling update)
       - name: Deploy to AKS
         run: |
-          kubectl set image deployment/catalog-deployment catalog=$ACR_NAME.azurecr.io/catalog-service:${{ github.sha }}
-          kubectl set image deployment/cart-deployment cart=$ACR_NAME.azurecr.io/cart-service:${{ github.sha }}
+          kubectl set image deployment/catalog-deployment \
+            catalog=$ACR_LOGIN_SERVER/catalog-service:$TAG
+
+          kubectl set image deployment/cart-deployment \
+            cart=$ACR_LOGIN_SERVER/cart-service:$TAG
+
+      # ✅ Vérification rollout
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/catalog-deployment
+          kubectl rollout status deployment/cart-deployment
