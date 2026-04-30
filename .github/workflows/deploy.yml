@@ -13,11 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 📥 Clone repo
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 🔐 Login Azure via Service Principal
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -29,34 +27,36 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # 🔑 Login to Azure Container Registry
       - name: ACR Login
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
-      # 🧠 Generate unique image tag
       - name: Set image tag
         run: echo "TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
-      # 🐳 Build & push Catalog
+      # 🔹 Catalog
       - name: Build & Push Catalog
         run: |
           docker build -t $ACR_LOGIN_SERVER/catalog-service:$TAG ./catalog-service
           docker push $ACR_LOGIN_SERVER/catalog-service:$TAG
 
-      # 🐳 Build & push Cart
+      # 🔹 Cart (clean path now)
       - name: Build & Push Cart
         run: |
           docker build -t $ACR_LOGIN_SERVER/cart-service:$TAG ./cart-service
           docker push $ACR_LOGIN_SERVER/cart-service:$TAG
 
-      # ⚙️ Get AKS credentials
+      # 🔹 Order
+      - name: Build & Push Order
+        run: |
+          docker build -t $ACR_LOGIN_SERVER/order-service:$TAG ./order-service
+          docker push $ACR_LOGIN_SERVER/order-service:$TAG
+
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
             --resource-group ${{ secrets.RESOURCE_GROUP }} \
             --name ${{ secrets.AKS_NAME }}
 
-      # 🚀 Deploy new version
       - name: Deploy to AKS
         run: |
           kubectl set image deployment/catalog-deployment \
@@ -65,8 +65,11 @@ jobs:
           kubectl set image deployment/cart-deployment \
             cart=$ACR_LOGIN_SERVER/cart-service:$TAG
 
-      # ✅ Verify rollout
-      - name: Verify deployment
+          kubectl set image deployment/order-deployment \
+            order=$ACR_LOGIN_SERVER/order-service:$TAG
+
+      - name: Verify rollout
         run: |
           kubectl rollout status deployment/catalog-deployment
           kubectl rollout status deployment/cart-deployment
+          kubectl rollout status deployment/order-deployment
