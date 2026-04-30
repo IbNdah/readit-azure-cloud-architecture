@@ -9,24 +9,15 @@ env:
   ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 🔁 Checkout repo
-      - name: Checkout
+      # 📥 Clone repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # 🔍 Debug secrets (temporaire)
-      - name: Debug secrets
-        run: |
-          echo "CLIENT_ID set: ${{ secrets.AZURE_CLIENT_ID != '' }}"
-          echo "CLIENT_SECRET set: ${{ secrets.AZURE_CLIENT_SECRET != '' }}"
-          echo "SUBSCRIPTION set: ${{ secrets.AZURE_SUBSCRIPTION_ID != '' }}"
-          echo "TENANT set: ${{ secrets.AZURE_TENANT_ID != '' }}"
-          echo "ACR_NAME: ${{ secrets.ACR_NAME }}"
-
-      # 🔐 Azure login
+      # 🔐 Login Azure via Service Principal
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -38,40 +29,34 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # 🔑 Login ACR
+      # 🔑 Login to Azure Container Registry
       - name: ACR Login
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
-      # 🧠 Tag unique
+      # 🧠 Generate unique image tag
       - name: Set image tag
         run: echo "TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
-      # 🔍 Debug structure (très utile)
-      - name: Debug files
-        run: |
-          pwd
-          ls -R
-
-      # 🐳 Build & Push Catalog
+      # 🐳 Build & push Catalog
       - name: Build & Push Catalog
         run: |
           docker build -t $ACR_LOGIN_SERVER/catalog-service:$TAG ./catalog-service
           docker push $ACR_LOGIN_SERVER/catalog-service:$TAG
 
-      # 🐳 Build & Push Cart
+      # 🐳 Build & push Cart
       - name: Build & Push Cart
         run: |
           docker build -t $ACR_LOGIN_SERVER/cart-service:$TAG ./cart-service
           docker push $ACR_LOGIN_SERVER/cart-service:$TAG
 
       # ⚙️ Get AKS credentials
-      - name: Get AKS Credentials
+      - name: Get AKS credentials
         run: |
           az aks get-credentials \
             --resource-group ${{ secrets.RESOURCE_GROUP }} \
             --name ${{ secrets.AKS_NAME }}
 
-      # 🚀 Deploy
+      # 🚀 Deploy new version
       - name: Deploy to AKS
         run: |
           kubectl set image deployment/catalog-deployment \
@@ -80,8 +65,8 @@ jobs:
           kubectl set image deployment/cart-deployment \
             cart=$ACR_LOGIN_SERVER/cart-service:$TAG
 
-      # ✅ Vérification rollout
-      - name: Verify rollout
+      # ✅ Verify rollout
+      - name: Verify deployment
         run: |
           kubectl rollout status deployment/catalog-deployment
           kubectl rollout status deployment/cart-deployment

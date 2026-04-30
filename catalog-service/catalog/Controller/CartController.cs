@@ -4,6 +4,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
+using System.Text.Json;
 
 namespace catalog.Controllers
 {
@@ -31,9 +32,6 @@ namespace catalog.Controllers
         [HttpGet("send-message")]
         public async Task<IActionResult> SendMessage()
         {
-            // var connectionString = _configuration["ServiceBus:ConnectionString"];
-            // var queueName = _configuration["ServiceBus:QueueName"];
-
             var connectionString =
                 Environment.GetEnvironmentVariable("SERVICEBUS_CONNECTION")
                 ?? _configuration["ServiceBus:ConnectionString"];
@@ -45,11 +43,28 @@ namespace catalog.Controllers
             await using var client = new ServiceBusClient(connectionString);
             var sender = client.CreateSender(queueName);
 
-            var message = new ServiceBusMessage("New order from catalog");
+            // 🔗 Correlation ID
+            var correlationId = Guid.NewGuid().ToString();
+
+            var payload = new
+            {
+                Product = "New order from catalog",
+                CorrelationId = correlationId
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+
+            var message = new ServiceBusMessage(json);
 
             await sender.SendMessageAsync(message);
 
-            return Ok("Message sent to Service Bus");
+            Console.WriteLine($"🟢 Catalog sent | CorrelationId: {correlationId}");
+
+            return Ok(new
+            {
+                Status = "Message sent",
+                CorrelationId = correlationId
+            });
         }
     }
 }

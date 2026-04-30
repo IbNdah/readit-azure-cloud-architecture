@@ -1,51 +1,110 @@
-using System.IO;
-using Azure.Messaging.ServiceBus;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using System;
+using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
+using Microsoft.Extensions.Hosting;
 
 namespace cart.Services
 {
     public class ServiceBusConsumer : BackgroundService
     {
-        private readonly IConfiguration _configuration;
         private ServiceBusProcessor _processor;
-
-        public ServiceBusConsumer(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
+        private ServiceBusClient _client;
+        private ServiceBusSender _sender;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var connectionString = File.ReadAllText("/mnt/secrets/servicebus-connection").Trim();
-            var queueName = File.ReadAllText("/mnt/secrets/servicebus-queue").Trim();
+            try
+            {
+                var connectionString = File.ReadAllText("/mnt/secrets/servicebus-connection").Trim();
+                var cartQueue = File.ReadAllText("/mnt/secrets/servicebus-queue").Trim();
+                var orderQueue = "order-queue";
 
-            var client = new ServiceBusClient(connectionString);
+                Console.WriteLine($"📡 Cart listening to: {cartQueue}");
+                Console.WriteLine($"📡 Cart sending to: {orderQueue}");
 
-            _processor = client.CreateProcessor(queueName);
+                _client = new ServiceBusClient(connectionString);
 
-            _processor.ProcessMessageAsync += MessageHandler;
-            _processor.ProcessErrorAsync += ErrorHandler;
+                _processor = _client.CreateProcessor(cartQueue, new ServiceBusProcessorOptions
+                {
+                    AutoCompleteMessages = false,
+                    MaxConcurrentCalls = 2
+                });
 
-            await _processor.StartProcessingAsync(stoppingToken);
+                _sender = _client.CreateSender(orderQueue);
+
+                _processor.ProcessMessageAsync += MessageHandler;
+                _processor.ProcessErrorAsync += ErrorHandler;
+
+                Console.WriteLine("🚀 Cart Service started");
+
+                await _processor.StartProcessingAsync(stoppingToken);
+
+                await Task.Delay(Timeout.Infinite, stoppingToken);
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Startup error: {ex.Message}");
+                throw;
+            }
         }
 
         private async Task MessageHandler(ProcessMessageEventArgs args)
         {
             var body = args.Message.Body.ToString();
 
-            Console.WriteLine($"🔥 Received message: {body}");
+            Console.WriteLine($"🔥 Cart received raw: {body}");
 
-            await args.CompleteMessageAsync(args.Message);
+            var order = new
+            {
+                OrderId = Guid.NewGuid().ToString(),
+                Product = body,
+                CreatedAt = DateTime.UtcNow,
+                Source = "cart-service"
+            };
+
+            var json = JsonSerializer.Serialize(order);
+
+            try
+            {
+                await _sender.SendMessageAsync(new ServiceBusMessage(json));
+
+                Console.WriteLine($"📦 Sent to Order Queue: {json}");
+
+                await args.CompleteMessageAsync(args.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Processing error: {ex.Message}");
+                throw;
+            }
         }
 
         private Task ErrorHandler(ProcessErrorEventArgs args)
         {
-            Console.WriteLine($"❌ Error: {args.Exception.Message}");
+            Console.WriteLine($"❌ ServiceBus Error: {args.Exception.Message}");
             return Task.CompletedTask;
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            Console.WriteLine("🛑 Stopping Cart Service...");
+
+            if (_processor != null)
+                await _processor.DisposeAsync();
+
+            if (_sender != null)
+                await _sender.DisposeAsync();
+
+            if (_client != null)
+                await _client.DisposeAsync();
+
+            await base.StopAsync(cancellationToken);
         }
     }
 }
