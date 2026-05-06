@@ -42,10 +42,12 @@ namespace cart.Services
 
                 await _processor.StartProcessingAsync(stoppingToken);
 
+                // 🔥 garder le service vivant
                 await Task.Delay(Timeout.Infinite, stoppingToken);
             }
             catch (TaskCanceledException)
             {
+                // arrêt normal
             }
             catch (Exception ex)
             {
@@ -56,31 +58,45 @@ namespace cart.Services
 
         private async Task MessageHandler(ProcessMessageEventArgs args)
         {
-            var body = args.Message.Body.ToString();
-
-            Console.WriteLine($"🔥 Cart received raw: {body}");
-
-            var order = new
-            {
-                OrderId = Guid.NewGuid().ToString(),
-                Product = body,
-                CreatedAt = DateTime.UtcNow,
-                Source = "cart-service"
-            };
-
-            var json = JsonSerializer.Serialize(order);
+            var raw = args.Message.Body.ToString();
+            Console.WriteLine($"🔥 Cart received raw: {raw}");
 
             try
             {
+                var incoming = JsonSerializer.Deserialize<JsonElement>(raw);
+
+                if (!incoming.TryGetProperty("Product", out var productProp) ||
+                    !incoming.TryGetProperty("CorrelationId", out var corrProp))
+                {
+                    throw new Exception("Invalid message schema");
+                }
+
+                var product = productProp.GetString();
+                var correlationId = corrProp.GetString();
+
+                var order = new
+                {
+                    OrderId = Guid.NewGuid().ToString(),
+                    Product = product,
+                    CreatedAt = DateTime.UtcNow,
+                    Source = "cart-service",
+                    CorrelationId = correlationId
+                };
+
+                var json = JsonSerializer.Serialize(order);
+
                 await _sender.SendMessageAsync(new ServiceBusMessage(json));
 
-                Console.WriteLine($"📦 Sent to Order Queue: {json}");
+                Console.WriteLine($"📦 Cart → Order | CorrelationId: {correlationId}");
 
+                // ✅ ACK uniquement après succès complet
                 await args.CompleteMessageAsync(args.Message);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Processing error: {ex.Message}");
+                Console.WriteLine($"❌ Cart processing error: {ex.Message}");
+
+                // ❌ ne pas ACK → retry + DLQ
                 throw;
             }
         }
