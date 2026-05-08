@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: order-deployment
 
@@ -18,12 +19,15 @@ spec:
     spec:
       containers:
         - name: order
-          image: readitacr123.azurecr.io/order-service:v1
+          image: readitacr123.azurecr.io/order-service:v3-observability
 
           ports:
             - containerPort: 80
 
           env:
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              value: "InstrumentationKey=...;IngestionEndpoint=https://..."
+
             - name: SERVICEBUS_CONNECTION
               valueFrom:
                 secretKeyRef:
@@ -31,7 +35,7 @@ spec:
                   key: SERVICEBUS_CONNECTION
 
             - name: SERVICEBUS_QUEUE
-              value: order-queue
+              value: "order-queue"
 
           volumeMounts:
             - name: secrets-store
@@ -43,5 +47,6 @@ spec:
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
+
             volumeAttributes:
               secretProviderClass: "readit-secrets"

@@ -1,112 +1,284 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace order.Services
 {
     public class OrderConsumer : BackgroundService
     {
+        private readonly ILogger<OrderConsumer> _logger;
+
         private ServiceBusProcessor? _processor;
         private ServiceBusClient? _client;
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        private static readonly ActivitySource ActivitySource =
+            new("readit.order");
+
+        public OrderConsumer(ILogger<OrderConsumer> logger)
+        {
+            _logger = logger;
+        }
+
+        protected override async Task ExecuteAsync(
+            CancellationToken stoppingToken)
         {
             try
             {
-                var connection = File.ReadAllText("/mnt/secrets/servicebus-connection").Trim();
+                string? connection;
+
+                // AKS mounted secret
+                if (File.Exists("/mnt/secrets/servicebus-connection"))
+                {
+                    connection = File
+                        .ReadAllText("/mnt/secrets/servicebus-connection")
+                        .Trim();
+
+                    _logger.LogInformation(
+                        "🔐 Using Service Bus connection from mounted secret");
+                }
+                else
+                {
+                    // Local development fallback
+                    connection =
+                        Environment.GetEnvironmentVariable(
+                            "SERVICEBUS_CONNECTION");
+
+                    _logger.LogInformation(
+                        "💻 Using Service Bus connection from environment variable");
+                }
+
+                if (string.IsNullOrWhiteSpace(connection))
+                {
+                    throw new Exception(
+                        "Service Bus connection string not found");
+                }
+
                 var queue = "order-queue";
 
                 _client = new ServiceBusClient(connection);
 
-                _processor = _client.CreateProcessor(queue, new ServiceBusProcessorOptions
-                {
-                    AutoCompleteMessages = false,
-                    MaxConcurrentCalls = 2
-                });
+                _processor = _client.CreateProcessor(
+                    queue,
+                    new ServiceBusProcessorOptions
+                    {
+                        AutoCompleteMessages = false,
+                        MaxConcurrentCalls = 2
+                    });
 
                 _processor.ProcessMessageAsync += HandleMessage;
                 _processor.ProcessErrorAsync += HandleError;
 
-                Console.WriteLine("🚀 Order Service started");
-                Console.WriteLine("📡 Connected to ServiceBus");
-                Console.WriteLine($"📥 Listening on queue: {queue}");
+                _logger.LogInformation("🚀 Order Service started");
 
-                Console.WriteLine("🔥 Initializing ServiceBus Processor...");
+                _logger.LogInformation(
+                    "📡 Connected to Service Bus");
+
+                _logger.LogInformation(
+                    "📥 Listening on queue: {Queue}",
+                    queue);
+
                 await _processor.StartProcessingAsync(stoppingToken);
 
-                Console.WriteLine("👂 Order listening to queue...");
+                _logger.LogInformation(
+                    "👂 Order consumer running");
 
-                await Task.Delay(Timeout.Infinite, stoppingToken);
+                await Task.Delay(
+                    Timeout.Infinite,
+                    stoppingToken);
             }
             catch (TaskCanceledException)
             {
-                // normal shutdown
+                _logger.LogInformation(
+                    "🛑 Order Service stopping...");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Startup error: {ex.Message}");
+                _logger.LogError(
+                    ex,
+                    "❌ Fatal startup error in Order Service");
+
                 throw;
             }
         }
 
-        private async Task HandleMessage(ProcessMessageEventArgs args)
+        private async Task HandleMessage(
+            ProcessMessageEventArgs args)
         {
             var raw = args.Message.Body.ToString();
-            Console.WriteLine($"📦 [RECEIVED] {raw}");
 
-            string? correlationId = null;
+            string correlationId = "unknown";
+            string product = "unknown";
+
+            using var activity =
+                ActivitySource.StartActivity("process-order");
 
             try
             {
-                var incoming = JsonSerializer.Deserialize<JsonElement>(raw);
+                _logger.LogInformation(
+                    "📦 [RECEIVED] MessageId={MessageId}",
+                    args.Message.MessageId);
 
-                var product = incoming.GetProperty("Product").GetString();
-                correlationId = incoming.GetProperty("CorrelationId").GetString();
+                var incoming =
+                    JsonSerializer.Deserialize<JsonElement>(raw);
 
-                Console.WriteLine($"🔗 CorrelationId: {correlationId}");
-                Console.WriteLine($"📦 Product: {product}");
-
-                Console.WriteLine($"🟢 [PROCESSING] CorrelationId={correlationId}");
-
-                if (!string.IsNullOrEmpty(product) && product.Contains("FAIL"))
+                // Validate Product
+                if (!incoming.TryGetProperty(
+                        "Product",
+                        out var productElement))
                 {
-                    throw new Exception("Simulated failure");
+                    await DeadLetterInvalidMessage(
+                        args,
+                        "MissingProduct",
+                        "Product field missing");
+
+                    return;
                 }
 
-                Console.WriteLine($"✅ [SUCCESS] CorrelationId={correlationId}");
+                // Validate CorrelationId
+                if (!incoming.TryGetProperty(
+                        "CorrelationId",
+                        out var correlationElement))
+                {
+                    await DeadLetterInvalidMessage(
+                        args,
+                        "MissingCorrelationId",
+                        "CorrelationId field missing");
 
-                await args.CompleteMessageAsync(args.Message);
+                    return;
+                }
+
+                product =
+                    productElement.GetString() ?? "unknown";
+
+                correlationId =
+                    correlationElement.GetString() ?? "unknown";
+
+                // OpenTelemetry tags
+                activity?.SetTag(
+                    "messaging.system",
+                    "azure_service_bus");
+
+                activity?.SetTag(
+                    "messaging.destination",
+                    "order-queue");
+
+                activity?.SetTag(
+                    "message.id",
+                    args.Message.MessageId);
+
+                activity?.SetTag(
+                    "correlation.id",
+                    correlationId);
+
+                activity?.SetTag(
+                    "product.name",
+                    product);
+
+                _logger.LogInformation(
+                    "🟢 [PROCESSING] CorrelationId={CorrelationId} Product={Product}",
+                    correlationId,
+                    product);
+
+                // Failure simulation
+                if (product.Contains("FAIL"))
+                {
+                    throw new Exception(
+                        "Simulated failure");
+                }
+
+                // Future place for idempotency
+                /*
+                if (AlreadyProcessed(args.Message.MessageId))
+                {
+                    _logger.LogWarning(
+                        "Duplicate message ignored: {MessageId}",
+                        args.Message.MessageId);
+
+                    await args.CompleteMessageAsync(args.Message);
+
+                    return;
+                }
+                */
+
+                _logger.LogInformation(
+                    "✅ [SUCCESS] CorrelationId={CorrelationId}",
+                    correlationId);
+
+                await args.CompleteMessageAsync(
+                    args.Message);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "❌ Invalid JSON message");
+
+                await DeadLetterInvalidMessage(
+                    args,
+                    "InvalidJson",
+                    ex.Message);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [ERROR] CorrelationId={correlationId ?? "unknown"} | {ex.Message}");
-                Console.WriteLine($"📦 Raw message: {raw}");
+                _logger.LogError(
+                    ex,
+                    "❌ [PROCESSING ERROR] CorrelationId={CorrelationId}",
+                    correlationId);
 
+                // Service Bus retries automatically
                 throw;
             }
         }
 
-        private Task HandleError(ProcessErrorEventArgs args)
+        private Task HandleError(
+            ProcessErrorEventArgs args)
         {
-            Console.WriteLine($"❌ [SB ERROR] {args.Exception.Message}");
-            Console.WriteLine($"📍 Entity: {args.EntityPath}");
-            Console.WriteLine($"📍 Source: {args.ErrorSource}");
+            _logger.LogError(
+                args.Exception,
+                "❌ [SERVICE BUS ERROR] Entity={EntityPath} Source={ErrorSource}",
+                args.EntityPath,
+                args.ErrorSource);
+
             return Task.CompletedTask;
         }
 
-        public override async Task StopAsync(CancellationToken cancellationToken)
+        private async Task DeadLetterInvalidMessage(
+            ProcessMessageEventArgs args,
+            string reason,
+            string description)
         {
-            Console.WriteLine("🛑 Stopping Order Service...");
+            _logger.LogWarning(
+                "☠️ Dead-lettering message. Reason={Reason} Description={Description}",
+                reason,
+                description);
+
+            await args.DeadLetterMessageAsync(
+                args.Message,
+                reason,
+                description);
+        }
+
+        public override async Task StopAsync(
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation(
+                "🛑 Stopping Order Service...");
 
             if (_processor != null)
+            {
                 await _processor.DisposeAsync();
+            }
 
             if (_client != null)
+            {
                 await _client.DisposeAsync();
+            }
 
             await base.StopAsync(cancellationToken);
         }

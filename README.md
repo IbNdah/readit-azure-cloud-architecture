@@ -1,55 +1,85 @@
-# 🚀 ReadIt - Azure Microservices Architecture
+# 🚀 ReadIt — Azure Event-Driven Microservices Architecture
 
 ## 📌 Overview
 
 ReadIt is a cloud-native event-driven microservices project built on Azure.
 
-The goal of this project is not only to deploy services, but also to understand, debug and monitor distributed systems in production-like environments.
+The project focuses less on feature richness and more on understanding how distributed systems behave at runtime.
 
-The architecture demonstrates:
+The main objective is to explore and practice:
 
-- Asynchronous communication
-- Distributed message processing
-- Retry & Dead Letter Queue (DLQ)
-- Kubernetes operations
-- Monitoring & observability
-- Failure handling in distributed systems
+* Event-driven architecture
+* Distributed systems debugging
+* Cloud-native operations
+* Observability and telemetry
+* Kubernetes runtime management
+* Failure handling and resilience patterns
 
----
-
-## ✨ Highlights
-
-- Azure Kubernetes Service (AKS)
-- Azure Service Bus
-- Event-driven architecture
-- Retry + Dead Letter Queue (DLQ)
-- CorrelationId distributed tracing
-- Structured application logging
-- Azure Monitor alerting
-- Infrastructure as Code with Terraform
-- Kubernetes deployments & rollouts
+Rather than simulating a “fully production-ready platform”, this project intentionally focuses on operational learning and real-world engineering challenges commonly encountered in distributed systems.
 
 ---
 
-# 🧠 Architecture Evolution
+# ✨ Highlights
 
-This project was developed iteratively to simulate real-world architecture evolution.
+* Azure Kubernetes Service (AKS)
+* Azure Service Bus
+* Event-driven microservices architecture
+* Producer / Consumer messaging model
+* Retry + Dead Letter Queue (DLQ)
+* CorrelationId-based message tracing
+* Structured application logging
+* OpenTelemetry instrumentation
+* Azure Application Insights integration
+* Azure Monitor alerting
+* Infrastructure as Code with Terraform
+* Kubernetes deployments & rollouts
+* Dockerized services
+* GitHub Actions CI/CD
+
+---
+
+# 🧠 Learning Goals
+
+This project was designed as a hands-on exploration of:
+
+* Asynchronous communication patterns
+* Distributed message processing
+* Failure visibility and debugging
+* Runtime observability
+* Kubernetes operational workflows
+* Resilience engineering concepts
+* Cloud-native troubleshooting
+
+---
+
+# 🏗️ Architecture Evolution
+
+The architecture was developed iteratively to simulate how distributed systems evolve over time.
 
 ---
 
 ## Phase 1 — Initial Synchronous Design
 
-- Catalog + Cart services
-- Simple service communication
-- Basic microservices foundation
+Initial architecture with:
+
+* Catalog service
+* Cart service
+* Basic service-to-service communication
+
+Goal:
+Establish a simple microservices foundation.
 
 ---
 
-## Phase 2 — Service Bus Integration
+## Phase 2 — Azure Service Bus Integration
 
-- Introduction of Azure Service Bus
-- Asynchronous communication
-- Producer / Consumer model
+Introduction of asynchronous messaging using Azure Service Bus.
+
+New concepts introduced:
+
+* Queue-based communication
+* Producer / Consumer pattern
+* Decoupled services
 
 Flow:
 
@@ -59,27 +89,33 @@ Catalog → Service Bus → Cart
 
 ## Phase 3 — Event-Driven Architecture
 
-- Services decoupled
-- Queue-based communication
-- Distributed processing mindset
+The architecture evolved toward an event-driven design.
+
+Focus areas:
+
+* Loose coupling
+* Distributed processing
+* Independent service responsibilities
 
 ---
 
 ## Phase 4 — Cart as Message Processor
 
-Cart service became an intermediate processor:
+The Cart service evolved into an intermediate message processor.
 
-- Consumes messages from `cart-queue`
-- Transforms payloads
-- Forwards messages to `order-queue`
+Responsibilities:
+
+* Consume messages from `cart-queue`
+* Validate and transform payloads
+* Forward events to `order-queue`
 
 ---
 
-## Phase 5 — Order Service
+## Phase 5 — Dedicated Order Service
 
-A dedicated Order service was added as the final consumer.
+A dedicated Order service was introduced as the final consumer.
 
-New flow:
+Updated flow:
 
 Catalog → cart-queue → Cart → order-queue → Order
 
@@ -87,39 +123,44 @@ Catalog → cart-queue → Cart → order-queue → Order
 
 ## Phase 6 — Resilience & Failure Handling
 
-Production-style resilience mechanisms were introduced:
+Production-oriented resilience mechanisms were added:
 
-- Automatic retries
-- Dead Letter Queue (DLQ)
-- Controlled failure simulation
-- Message durability validation
+* Automatic retries
+* Dead Letter Queue (DLQ)
+* Controlled failure simulation
+* Poison message handling
+* Message durability validation
 
 ---
 
 ## Phase 7 — Monitoring & Observability
 
-Monitoring capabilities were added:
+Observability and monitoring capabilities were introduced.
 
-- Structured logging
-- CorrelationId tracing
-- Azure Monitor alerts
-- DLQ monitoring
-- Distributed debugging workflow
+Implemented features:
+
+* Structured logs
+* CorrelationId propagation
+* Retry visibility
+* DLQ monitoring
+* Azure Monitor alerts
+* OpenTelemetry instrumentation
+* Azure Application Insights integration
 
 ---
 
-# 🏗️ Architecture
+# 🏗️ Core Components
 
-## Services
-
-| Service | Role |
-|---|---|
-| Catalog Service | Producer |
-| Cart Service | Message Processor |
-| Order Service | Final Consumer |
-| Azure Service Bus | Messaging Backbone |
-| AKS | Container Orchestration |
-| ACR | Container Registry |
+| Component            | Role                      |
+| -------------------- | ------------------------- |
+| Catalog Service      | Event Producer            |
+| Cart Service         | Message Processor         |
+| Order Service        | Final Consumer            |
+| Azure Service Bus    | Messaging Backbone        |
+| AKS                  | Container Orchestration   |
+| ACR                  | Container Registry        |
+| Azure Monitor        | Monitoring & Alerts       |
+| Application Insights | Telemetry & Observability |
 
 ---
 
@@ -172,16 +213,20 @@ flowchart LR
 
 # 📊 Monitoring & Observability
 
-The system includes production-style monitoring features.
+The project includes observability features inspired by real-world distributed systems operations.
+
+---
 
 ## Implemented
 
-- Structured application logs
-- CorrelationId propagation
-- Azure Monitor alerting
-- DLQ monitoring
-- Retry visibility
-- End-to-end message tracing
+* Structured application logs
+* CorrelationId-based tracing
+* Azure Monitor alerting
+* DLQ monitoring
+* Retry visibility
+* OpenTelemetry spans
+* Azure Application Insights integration
+* Runtime telemetry collection
 
 ---
 
@@ -208,49 +253,103 @@ The system includes production-style monitoring features.
 
 ---
 
-# 🔧 Production Challenges Solved
-
-During development, several real-world distributed system issues were identified and resolved:
-
-- Messages stuck in queues
-- Consumers silently stopping
-- Wrong queue configuration
-- Kubernetes rollout inconsistencies
-- Docker image version mismatch
-- DLQ accumulation
-- Monitoring alert configuration issues
-- Nested JSON payload problems
-
-This project focuses heavily on debugging and understanding runtime behavior in distributed systems.
+## ## OpenTelemetry Runtime Trace Example
+Example of a custom OpenTelemetry span generated during asynchronous order processing inside AKS.
+```text
+Activity.TraceId:            42e288fb61e0c78b85c06e5c7468f0c9
+Activity.SpanId:             a21e0621d0036a92
+Activity.TraceFlags:         Recorded
+Activity.ActivitySourceName: readit.order
+Activity.DisplayName:        process-order
+Activity.Kind:               Internal
+Activity.StartTime:          2026-05-08T08:27:25.3766718Z
+Activity.Duration:           00:00:00.0809132
+```
 
 ---
 
 # 💥 Failure Handling
 
-The architecture includes resilience mechanisms inspired by production systems.
+The architecture includes resilience mechanisms inspired by distributed cloud systems.
 
-## Retry Logic
+---
 
-- Automatic retries managed by Azure Service Bus
-- Messages retried before dead-lettering
+## Retry Strategy
+
+Azure Service Bus automatically retries failed messages before dead-lettering them.
+
+Examples:
+
+* Temporary processing issues
+* Simulated runtime failures
+* Transient consumer problems
 
 ---
 
 ## Dead Letter Queue (DLQ)
 
-Failed messages are automatically moved to DLQ after repeated failures.
+Messages are automatically moved to DLQ after repeated failures.
 
-Example scenarios:
+Examples:
 
-- Invalid payload
-- Processing exception
-- Simulated failure
+* Invalid payloads
+* Schema validation failures
+* Processing exceptions
+* Poison messages
 
 ---
 
 ## Monitoring
 
 Azure Monitor alerts are triggered when DLQ activity increases.
+
+This allows early visibility into queue processing problems.
+
+---
+
+# 🔧 Real Engineering Challenges Encountered
+
+During development, several operational and distributed systems issues were identified and resolved:
+
+* Messages stuck in queues
+* Consumers silently stopping
+* Wrong queue configuration
+* Kubernetes rollout inconsistencies
+* Docker image version mismatch
+* Dependency/package conflicts
+* DLQ accumulation
+* Monitoring configuration issues
+* Nested JSON payload problems
+* Runtime configuration issues
+* Service Bus authentication failures
+* OpenTelemetry package compatibility issues
+
+A strong focus of the project was understanding runtime behavior and debugging distributed systems under failure scenarios.
+
+---
+
+# ☸️ Kubernetes Operations
+
+The project also focuses on day-to-day Kubernetes operational workflows.
+
+Examples:
+
+* Pod inspection
+* Log streaming
+* Deployment rollouts
+* Image updates
+* Runtime debugging
+* Secret injection
+* Configuration troubleshooting
+
+Common commands used:
+
+```bash
+kubectl get pods
+kubectl logs -l app=order -f
+kubectl rollout status deployment/order-deployment
+kubectl set image deployment/order-deployment ...
+```
 
 ---
 
@@ -263,8 +362,7 @@ readit-azure-architecture/
 ├── order-service/
 ├── terraform/
 ├── kubernetes/
-├── docs/
-└── screenshots/
+└── docs/
 ```
 
 ---
@@ -277,42 +375,59 @@ readit-azure-architecture/
 - [Notifications](docs/Notifications.png)
 - [DLQ Metrics](docs/DLQ.png)
 - [AKS Pods](docs/Pods.png)
+- [App Insights](docs/App_Insights_Dependencies.png)
+
 
 ---
+
 # ⚠️ Common Issues
 
-| Issue | Cause |
-|---|---|
-| ImagePullBackOff | Wrong image tag / ACR access |
-| CreateContainerConfigError | Missing secret |
-| Service Bus 401 | Wrong configuration |
-| No message processing | Wrong queue / consumer issue |
-| DLQ accumulation | Processing failure |
-| Old code still running | Deployment rollout issue |
+| Issue                      | Cause                            |
+| -------------------------- | -------------------------------- |
+| ImagePullBackOff           | Wrong image tag / ACR access     |
+| CreateContainerConfigError | Missing secret                   |
+| Service Bus 401            | Invalid connection string        |
+| No message processing      | Queue / consumer issue           |
+| DLQ accumulation           | Processing failures              |
+| Old code still running     | Deployment rollout inconsistency |
 
 ---
 
-# 🚧 Current Limitations & Next Steps
+# 🚧 Current State & Limitations
 
-The architecture is continuously evolving.
+Implemented:
 
-Planned improvements:
+* OpenTelemetry instrumentation
+* Azure Application Insights integration
+* Structured telemetry
+* CorrelationId propagation
+* Retry & DLQ handling
+* Runtime monitoring
 
-- OpenTelemetry integration
-- Azure Application Insights
-- Distributed tracing dashboard
-- Schema validation
-- Idempotency handling
-- GitHub Actions CI/CD improvements
-- Centralized observability dashboards
-- Load testing & scaling validation
+Current limitations:
+
+* No full distributed trace propagation across services yet
+* No centralized observability dashboards
+* Limited schema validation
+* No persistent idempotency handling
+* No autoscaling policies yet
+* No service mesh integration
+
+These areas are intentionally left as future learning opportunities.
 
 ---
 
 # 💡 Key Insight
 
-This project focuses on a critical engineering reality:
-
 > In distributed systems, deployment is only the beginning.
 
-Understanding failures, retries, observability and runtime behavior is what makes cloud systems reliable.
+Reliable cloud systems require visibility into:
+
+* Runtime behavior
+* Failures
+* Retries
+* Queue processing
+* Observability
+* Operational debugging
+
+This project focuses heavily on understanding those operational realities in cloud-native architectures.

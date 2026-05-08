@@ -18,3 +18,5 @@ Thumbs.db
 
 # VS Code
 .vscode/terraform.tfvars
+
+publish/
