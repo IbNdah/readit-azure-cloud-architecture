@@ -324,6 +324,7 @@ During development, several operational and distributed systems issues were iden
 * Service Bus authentication failures
 * OpenTelemetry package compatibility issues
 
+During deployment validation, a runtime framework mismatch caused new pods to enter CrashLoopBackOff while previous healthy replicas continued serving traffic, illustrating Kubernetes rolling deployment resilience behavior.
 A strong focus of the project was understanding runtime behavior and debugging distributed systems under failure scenarios.
 
 ---
@@ -346,6 +347,7 @@ Common commands used:
 
 ```bash
 kubectl get pods
+kubectl get svc
 kubectl logs -l app=order -f
 kubectl rollout status deployment/order-deployment
 kubectl set image deployment/order-deployment ...
@@ -414,6 +416,11 @@ Current limitations:
 * No service mesh integration
 
 These areas are intentionally left as future learning opportunities.
+
+---
+🔭 Future Learning Direction
+
+The next iteration of this learning journey will explore IoT and telemetry-driven architectures, focusing on device communication, telemetry ingestion and operational monitoring in cloud-native environments.
 
 ---
 

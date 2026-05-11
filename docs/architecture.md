@@ -1,4 +1,3 @@
-
 # 🧱 Architecture Diagram
 
 ```mermaid
@@ -37,4 +36,3 @@ flowchart LR
     Cart -. deployed on .-> AKS
     Order -. deployed on .-> AKS
 ```
-

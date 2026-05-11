@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: catalog-deployment
 
@@ -18,28 +19,23 @@ spec:
     spec:
       containers:
         - name: catalog
-          image: readitacr123.azurecr.io/catalog-service:v4
+          image: readitacr123.azurecr.io/catalog-service:v13
+
+          imagePullPolicy: Always
 
           ports:
-            - containerPort: 80
+            - containerPort: 8080
 
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
-              cpu: "250m"
-              memory: "256Mi"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
 
-          env:
-            - name: SERVICEBUS_CONNECTION
-              valueFrom:
-                secretKeyRef:
-                  name: servicebus-secret
-                  key: SERVICEBUS_CONNECTION
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
 
-            - name: SERVICEBUS_QUEUE
-              valueFrom:
-                secretKeyRef:
-                  name: servicebus-secret
-                  key: SERVICEBUS_QUEUE
+            volumeAttributes:
+              secretProviderClass: "readit-secrets"

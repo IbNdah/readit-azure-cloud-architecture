@@ -1,18 +1,24 @@
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /app
 
-COPY catalog/ ./catalog/
-WORKDIR /app/catalog
-RUN dotnet restore 
-RUN dotnet publish -c Release -o out
+WORKDIR /src
+
+COPY catalog.csproj .
+RUN dotnet restore catalog.csproj
+
+COPY . .
+
+RUN dotnet publish catalog.csproj -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
+
 WORKDIR /app
 
-COPY --from=build /app/catalog/out .
+ENV ASPNETCORE_URLS=http://+:8080
 
-ENV ASPNETCORE_URLS=http://+:80
+EXPOSE 8080
+
+COPY --from=build /app/publish .
 
 ENTRYPOINT ["dotnet", "catalog.dll"]

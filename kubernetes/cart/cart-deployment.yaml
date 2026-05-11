@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: cart-deployment
 
@@ -18,10 +19,12 @@ spec:
     spec:
       containers:
         - name: cart
-          image: readitacr123.azurecr.io/cart-service:v10
+          image: readitacr123.azurecr.io/cart-service:v13
+
+          imagePullPolicy: Always
 
           ports:
-            - containerPort: 80
+            - containerPort: 8080
 
           volumeMounts:
             - name: secrets-store
@@ -33,5 +36,6 @@ spec:
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
+
             volumeAttributes:
               secretProviderClass: "readit-secrets"
