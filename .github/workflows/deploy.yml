@@ -1,12 +1,7 @@
 name: Build & Deploy to AKS
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "README.md"
-      - "docs/**"
+  workflow_dispatch:
 
 env:
   ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
