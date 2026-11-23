@@ -1,361 +1,167 @@
-# 🚀 ReadIt — Azure Event-Driven Microservices Architecture
+# ReadIt: Azure Microservices on AKS
 
-## 📌 Overview
+ReadIt is a practical project for building and operating a small event-driven application on Microsoft Azure. It uses three .NET services, Azure Service Bus and Azure Kubernetes Service (AKS).
 
-ReadIt is a cloud-native event-driven microservices project built on Azure.
+The work focuses on deploying the services, handling asynchronous messages, observing runtime behaviour and diagnosing failures. It is a learning project, not a production-ready reference platform.
 
-The project focuses less on feature richness and more on understanding how distributed systems behave at runtime.
-
-The main objective is to explore and practice:
-
-* Event-driven architecture
-* Distributed systems debugging
-* Cloud-native operations
-* Observability and telemetry
-* Kubernetes runtime management
-* Failure handling and resilience patterns
-
-Rather than simulating a “fully production-ready platform”, this project intentionally focuses on operational learning and real-world engineering challenges commonly encountered in distributed systems.
-
----
-
-# ✨ Highlights
-
-* Azure Kubernetes Service (AKS)
-* Azure Service Bus
-* Event-driven microservices architecture
-* Producer / Consumer messaging model
-* Retry + Dead Letter Queue (DLQ)
-* CorrelationId-based message tracing
-* Structured application logging
-* OpenTelemetry instrumentation
-* Azure Application Insights integration
-* Azure Monitor alerting
-* Infrastructure as Code with Terraform
-* Kubernetes deployments & rollouts
-* Dockerized services
-* GitHub Actions CI/CD
-
----
-
-# 🧠 Learning Goals
-
-This project was designed as a hands-on exploration of:
-
-* Asynchronous communication patterns
-* Distributed message processing
-* Failure visibility and debugging
-* Runtime observability
-* Kubernetes operational workflows
-* Resilience engineering concepts
-* Cloud-native troubleshooting
-
----
-
-# 🏗️ Architecture Evolution
-
-The architecture was developed iteratively to simulate how distributed systems evolve over time.
-
----
-
-## Phase 1 — Initial Synchronous Design
-
-Initial architecture with:
-
-* Catalog service
-* Cart service
-* Basic service-to-service communication
-
-Goal:
-Establish a simple microservices foundation.
-
----
-
-## Phase 2 — Azure Service Bus Integration
-
-Introduction of asynchronous messaging using Azure Service Bus.
-
-New concepts introduced:
-
-* Queue-based communication
-* Producer / Consumer pattern
-* Decoupled services
-
-Flow:
-
-Catalog → Service Bus → Cart
-
----
-
-## Phase 3 — Event-Driven Architecture
-
-The architecture evolved toward an event-driven design.
-
-Focus areas:
-
-* Loose coupling
-* Distributed processing
-* Independent service responsibilities
-
----
-
-## Phase 4 — Cart as Message Processor
-
-The Cart service evolved into an intermediate message processor.
-
-Responsibilities:
-
-* Consume messages from `cart-queue`
-* Validate and transform payloads
-* Forward events to `order-queue`
-
----
-
-## Phase 5 — Dedicated Order Service
-
-A dedicated Order service was introduced as the final consumer.
-
-Updated flow:
-
-Catalog → cart-queue → Cart → order-queue → Order
-
----
-
-## Phase 6 — Resilience & Failure Handling
-
-Production-oriented resilience mechanisms were added:
-
-* Automatic retries
-* Dead Letter Queue (DLQ)
-* Controlled failure simulation
-* Poison message handling
-* Message durability validation
-
----
-
-## Phase 7 — Monitoring & Observability
-
-Observability and monitoring capabilities were introduced.
-
-Implemented features:
-
-* Structured logs
-* CorrelationId propagation
-* Retry visibility
-* DLQ monitoring
-* Azure Monitor alerts
-* OpenTelemetry instrumentation
-* Azure Application Insights integration
-
----
-
-# 🏗️ Core Components
-
-| Component            | Role                      |
-| -------------------- | ------------------------- |
-| Catalog Service      | Event Producer            |
-| Cart Service         | Message Processor         |
-| Order Service        | Final Consumer            |
-| Azure Service Bus    | Messaging Backbone        |
-| AKS                  | Container Orchestration   |
-| ACR                  | Container Registry        |
-| Azure Monitor        | Monitoring & Alerts       |
-| Application Insights | Telemetry & Observability |
-
----
-
-# 🔄 End-to-End Flow
-
-User → Catalog → cart-queue → Cart → order-queue → Order
-
----
-
-# 🧱 Architecture Diagram
+## Architecture
 
 ```mermaid
 flowchart LR
+    User --> Catalog[Catalog service]
+    Catalog --> CartQueue[(cart-queue)]
+    CartQueue --> Cart[Cart service]
+    Cart --> OrderQueue[(order-queue)]
+    OrderQueue --> Order[Order service]
+    Order --> Processed[(Processed)]
+    Order --> DLQ[(Dead Letter Queue)]
 
-    User[User] --> Catalog[Catalog Service]
-
-    Catalog -->|Publish Event| CartQueue[(cart-queue)]
-
-    CartQueue --> Cart[Cart Service]
-
-    Cart -->|Transform & Forward| OrderQueue[(order-queue)]
-
-    OrderQueue --> Order[Order Service]
-
-    Order -->|Success| Success[(Processed)]
-
-    Order -->|Failure| DLQ[(Dead Letter Queue)]
-
-    DLQ --> Alert[Azure Monitor Alert]
-
-    subgraph Azure
+    subgraph AKS[Azure Kubernetes Service]
         Catalog
         Cart
         Order
+    end
+
+    subgraph Azure
         CartQueue
         OrderQueue
         DLQ
+        ACR[Azure Container Registry]
+        KV[Azure Key Vault]
+        AI[Application Insights]
+        Monitor[Azure Monitor]
     end
 
-    subgraph Kubernetes
-        AKS[AKS Cluster]
-    end
-
-    Catalog -. deployed on .-> AKS
-    Cart -. deployed on .-> AKS
-    Order -. deployed on .-> AKS
+    ACR -. images .-> AKS
+    KV -. CSI secret mounts .-> AKS
+    AKS -. telemetry .-> AI
+    DLQ -. alerting .-> Monitor
 ```
 
----
+### Services
 
-# 📊 Monitoring & Observability
+| Service | Responsibility |
+|---|---|
+| Catalog | Receives requests and publishes messages |
+| Cart | Consumes messages from `cart-queue`, validates/transforms them and forwards events |
+| Order | Consumes messages from `order-queue` and processes orders |
 
-The project includes observability features inspired by real-world distributed systems operations.
-
----
-
-## Implemented
-
-* Structured application logs
-* CorrelationId-based tracing
-* Azure Monitor alerting
-* DLQ monitoring
-* Retry visibility
-* OpenTelemetry spans
-* Azure Application Insights integration
-* Runtime telemetry collection
-
----
-
-## Example Logs
-
-### Successful Processing
+The message flow is:
 
 ```text
-📦 [RECEIVED]
-🔗 CorrelationId=3953a2f7-e40c-4624-a0cd-d3231aa3d693
-🟢 [PROCESSING]
-✅ [SUCCESS]
+User -> Catalog -> cart-queue -> Cart -> order-queue -> Order
 ```
 
----
+Azure Service Bus provides the asynchronous communication between the services. The Cart service acts as an intermediate processor rather than requiring direct synchronous calls between every service.
 
-### Failure Scenario
+## Azure infrastructure
 
-```text
-❌ [ERROR] CorrelationId=alert-test
-❌ Message moved to DLQ
-📧 Azure Monitor Alert Triggered
-```
+Terraform is used to provision the main Azure resources through separate modules:
 
----
+- Resource Group
+- Azure Container Registry (ACR)
+- Azure Kubernetes Service (AKS)
+- Azure Service Bus namespace and queue
 
-## ## OpenTelemetry Runtime Trace Example
-Example of a custom OpenTelemetry span generated during asynchronous order processing inside AKS.
-```text
-Activity.TraceId:            42e288fb61e0c78b85c06e5c7468f0c9
-Activity.SpanId:             a21e0621d0036a92
-Activity.TraceFlags:         Recorded
-Activity.ActivitySourceName: readit.order
-Activity.DisplayName:        process-order
-Activity.Kind:               Internal
-Activity.StartTime:          2026-05-08T08:27:25.3766718Z
-Activity.Duration:           00:00:00.0809132
-```
+The AKS configuration uses a System Assigned managed identity. The kubelet identity receives the `AcrPull` role on the registry, allowing the cluster to pull container images without enabling the ACR admin account.
 
----
+The supplied AKS variables define a default node count of two and a default VM size of `Standard_B2s`. The deployment manifests configure two replicas for Catalog, two for Cart and one for Order.
 
-# 💥 Failure Handling
+## Containers and Kubernetes
 
-The architecture includes resilience mechanisms inspired by distributed cloud systems.
+The three services are containerized and deployed to AKS.
 
----
+The Kubernetes manifests define:
 
-## Retry Strategy
+- Deployments for Catalog, Cart and Order
+- Services using `LoadBalancer` or `ClusterIP`
+- An NGINX Ingress resource for Catalog
+- Read-only CSI volume mounts for secrets
 
-Azure Service Bus automatically retries failed messages before dead-lettering them.
+The Catalog service manifest currently uses `LoadBalancer`, while an Ingress resource also routes traffic to that service. These are both present in the supplied configuration.
 
-Examples:
+A `ClusterIssuer` using cert-manager's self-signed issuer is also defined. The supplied manifests do not establish that a TLS certificate is issued and configured on the Ingress.
 
-* Temporary processing issues
-* Simulated runtime failures
-* Transient consumer problems
+## CI/CD
 
----
+A GitHub Actions workflow runs on pushes to the `main` branch.
 
-## Dead Letter Queue (DLQ)
+It performs the following steps:
 
-Messages are automatically moved to DLQ after repeated failures.
+1. Checks out the repository.
+2. Authenticates to Azure using credentials stored as GitHub Secrets.
+3. Logs in to Azure Container Registry.
+4. Builds the Catalog, Cart and Order Docker images.
+5. Tags each image with the Git commit SHA and pushes it to ACR.
+6. Retrieves AKS credentials.
+7. Updates the three Kubernetes Deployments with the new image tags.
+8. Waits for the three rollouts to complete.
 
-Examples:
+The workflow uses a service principal client secret stored in GitHub Secrets. Workload Identity Federation/OIDC is not configured in the supplied workflow.
 
-* Invalid payloads
-* Schema validation failures
-* Processing exceptions
-* Poison messages
+## Messaging and failure handling
 
----
+The application uses Azure Service Bus queues and a producer/consumer message flow.
 
-## Monitoring
+Implemented handling includes:
 
-Azure Monitor alerts are triggered when DLQ activity increases.
+- Retry handling for failed message processing
+- Dead Letter Queue (DLQ) handling
+- Poison-message scenarios
+- Controlled failure simulation
+- Correlation ID values in application logs
+- Monitoring of DLQ activity
 
-This allows early visibility into queue processing problems.
+The project was used to investigate issues such as messages remaining in queues, consumers stopping, incorrect queue configuration, authentication failures and DLQ accumulation.
 
----
+## Secrets management
 
-# 🔧 Real Engineering Challenges Encountered
+Kubernetes workloads use the Secrets Store CSI Driver with the Azure provider.
 
-During development, several operational and distributed systems issues were identified and resolved:
+A `SecretProviderClass` named `readit-secrets` references an Azure Key Vault and a User Assigned Managed Identity. The Catalog, Cart and Order Deployments mount the CSI volume read-only at `/mnt/secrets`.
 
-* Messages stuck in queues
-* Consumers silently stopping
-* Wrong queue configuration
-* Kubernetes rollout inconsistencies
-* Docker image version mismatch
-* Dependency/package conflicts
-* DLQ accumulation
-* Monitoring configuration issues
-* Nested JSON payload problems
-* Runtime configuration issues
-* Service Bus authentication failures
-* OpenTelemetry package compatibility issues
+The configured Key Vault objects are:
 
-During deployment validation, a runtime framework mismatch caused new pods to enter CrashLoopBackOff while previous healthy replicas continued serving traffic, illustrating Kubernetes rolling deployment resilience behavior.
-A strong focus of the project was understanding runtime behavior and debugging distributed systems under failure scenarios.
+- `servicebus-connection`
+- `servicebus-queue`
+- `applicationinsights-connection`
 
----
+The manifests show the identity reference and volume mounts. The associated Azure role assignments and Key Vault permissions must be configured separately for the identity to retrieve these secrets.
 
-# ☸️ Kubernetes Operations
+## Monitoring and troubleshooting
 
-The project also focuses on day-to-day Kubernetes operational workflows.
+The project includes:
 
-Examples:
+- Structured application logs
+- Correlation ID logging
+- OpenTelemetry instrumentation and custom spans
+- Azure Application Insights integration
+- Azure Monitor alerts
+- DLQ and retry visibility
 
-* Pod inspection
-* Log streaming
-* Deployment rollouts
-* Image updates
-* Runtime debugging
-* Secret injection
-* Configuration troubleshooting
+Troubleshooting work covered:
 
-Common commands used:
+- Pods entering `CrashLoopBackOff`
+- Kubernetes rollout and image-version inconsistencies
+- `ImagePullBackOff` and registry access
+- Missing secret configuration
+- Service Bus authentication and queue configuration
+- Consumers not processing messages
+- DLQ accumulation
+- Runtime and dependency compatibility problems
+- OpenTelemetry package configuration
+
+Example Kubernetes commands used during investigation:
 
 ```bash
 kubectl get pods
-kubectl get svc
+kubectl get services
 kubectl logs -l app=order -f
 kubectl rollout status deployment/order-deployment
-kubectl set image deployment/order-deployment ...
+kubectl describe pod <pod-name>
 ```
 
----
-
-# 📁 Project Structure
+## Repository layout
 
 ```text
 readit-azure-architecture/
@@ -367,74 +173,26 @@ readit-azure-architecture/
 └── docs/
 ```
 
----
+## Current scope and limitations
 
-# 📚 Documentation
+The project demonstrates the components and workflows described above. The following items are not implemented or are not complete in the current documented state:
 
-- [Architecture](docs/architecture.md)
-- [Deployment Guide](docs/deployment.md)
-- [Testing](docs/testing.md)
-- [Notifications](docs/Notifications.png)
-- [DLQ Metrics](docs/DLQ.png)
-- [AKS Pods](docs/Pods.png)
-- [App Insights](docs/App_Insights_Dependencies.png)
+- End-to-end distributed trace propagation across all services
+- Centralized observability dashboards
+- Comprehensive message schema validation
+- Persistent idempotency handling
+- Kubernetes autoscaling policies
+- Service mesh integration
+- Confirmed TLS certificate issuance and Ingress TLS configuration
+- GitHub Actions authentication through OIDC / Workload Identity Federation
 
+These are possible areas for further development.
 
----
+## Documentation
 
-# ⚠️ Common Issues
+Additional project material is maintained in the `docs/` directory:
 
-| Issue                      | Cause                            |
-| -------------------------- | -------------------------------- |
-| ImagePullBackOff           | Wrong image tag / ACR access     |
-| CreateContainerConfigError | Missing secret                   |
-| Service Bus 401            | Invalid connection string        |
-| No message processing      | Queue / consumer issue           |
-| DLQ accumulation           | Processing failures              |
-| Old code still running     | Deployment rollout inconsistency |
-
----
-
-# 🚧 Current State & Limitations
-
-Implemented:
-
-* OpenTelemetry instrumentation
-* Azure Application Insights integration
-* Structured telemetry
-* CorrelationId propagation
-* Retry & DLQ handling
-* Runtime monitoring
-
-Current limitations:
-
-* No full distributed trace propagation across services yet
-* No centralized observability dashboards
-* Limited schema validation
-* No persistent idempotency handling
-* No autoscaling policies yet
-* No service mesh integration
-
-These areas are intentionally left as future learning opportunities.
-
----
-🔭 Future Learning Direction
-
-The next iteration of this learning journey will explore IoT and telemetry-driven architectures, focusing on device communication, telemetry ingestion and operational monitoring in cloud-native environments.
-
----
-
-# 💡 Key Insight
-
-> In distributed systems, deployment is only the beginning.
-
-Reliable cloud systems require visibility into:
-
-* Runtime behavior
-* Failures
-* Retries
-* Queue processing
-* Observability
-* Operational debugging
-
-This project focuses heavily on understanding those operational realities in cloud-native architectures.
+- `architecture.md`
+- `deployment.md`
+- `testing.md`
+- Monitoring and deployment screenshots
