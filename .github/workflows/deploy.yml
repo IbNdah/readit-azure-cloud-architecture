@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
 
 env:
   ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
